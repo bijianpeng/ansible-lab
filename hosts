@@ -5,3 +5,10 @@
 
 [test-servers]
 172.18.0.2
+
+[hadoop-master]
+hadoop-master
+
+[hadoop-slave]
+hadoop-slave1
+hadoop-slave2

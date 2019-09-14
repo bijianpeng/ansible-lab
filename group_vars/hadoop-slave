@@ -1,0 +1,5 @@
+---
+add_user: true
+generate_key: false
+user: "hadoop"
+group: "hadoop"

@@ -1,0 +1,5 @@
+---
+- name: Add public key to hadoop-slave 
+  authorized_key: 
+    user={{ user }} 
+    key="{{ lookup('file', '/tmp/id_{{user}}.pub') }}"

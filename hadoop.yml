@@ -1,0 +1,11 @@
+---
+- hosts: hadoop-master
+  roles:
+    - user
+    - fetch_public_key
+    - add_public_key
+
+- hosts: hadoop-slave
+  roles:
+    - user
+    - add_public_key
