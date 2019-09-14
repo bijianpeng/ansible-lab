@@ -1,0 +1,39 @@
+---
+- name: Install jdk1.8
+  yum: name=java-1.8.0-openjdk state=present
+  
+#- name: Check install directory
+#  stat: 
+#    path: "{{ZookeeperPath}}"
+#  register: st
+
+#- name: Exit when install directory exists
+#  fail:
+#    msg: ZookeeperPath is exists
+#  when: st.stat.exists
+
+- name: Create install directory
+  file:
+    path: "{{ZookeeperDir}}"
+    state: directory
+    mode: '0755'
+
+- name: Install zookeeper
+  unarchive: 
+    src: "{{ZookeeperName}}.tar.gz"
+    dest: "{{ZookeeperDir}}"
+
+- name: Install configuration file
+  template:
+    src: zoo.cfg.j2
+    dest: "{{ZookeeperPath}}/conf/zoo.cfg"
+
+- name: Create data directory
+  file:
+    path: "{{ZookeeperPath}}/data"
+    state: directory
+    mode: '0755'
+
+- name: Add myid file
+  shell: echo "{{myid}}" > "{{ZookeeperPath}}/data/myid"
+  notify: restart zookeeper

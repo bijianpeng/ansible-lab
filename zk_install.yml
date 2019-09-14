@@ -1,0 +1,4 @@
+- hosts: zookeeper-servers
+  remote_user: root
+  roles:
+  - zookeeper

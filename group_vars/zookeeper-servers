@@ -1,0 +1,3 @@
+ZookeeperDir: /export/home
+ZookeeperName: zookeeper-3.5.5
+ZookeeperPath: "{{ZookeeperDir}}/{{ZookeeperName}}"
