@@ -1,0 +1,8 @@
+# Log file 
+*.log
+
+# Package file
+*.tar.gz
+*.tgz
+*.tar
+*.zip
