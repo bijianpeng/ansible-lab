@@ -1,0 +1,40 @@
+---
+- name: Create hadoop path
+  file: 
+    path: "{{ item }}"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ hadoop_create_path }}"
+
+- name: Install hadoop
+  unarchive:
+    src: "hadoop-{{ hadoop_version }}.tar.gz"
+    dest: "{{ hadoop_path }}"
+    mode: 644
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    creates: "{{ hadoop_config_path }}"
+
+- name: Copy core-site.xml
+  template: src=core-site.xml.j2 dest={{ hadoop_config_path }}/core-site.xml mode=644 owner={{ user }} group = {{ group }}
+
+- name: Copy hdfs-site.xml
+  template: src=hdfs-site.xml.j2 dest={{ hadoop_config_path }}/hdfs-site.xml mode=644 owner={{ user }} group = {{ group }}
+
+- name: Copy mapred-site.xml
+  template: src=mapred-site.xml.j2 dest={{ hadoop_config_path }}/mapred-site.xml mode=644 owner={{ user }} group = {{ group }}
+
+- name: Copy yarn-site.xml
+  template: src=yarn-site.xml.j2 dest={{ hadoop_config_path }}/yarn-site.xml mode=644 owner={{ user }} group = {{ group }}
+
+- name: Copy slaves
+  template: src=slaves.j2 dest={{ hadoop_config_path }}/slaves mode=644 owner={{ user }} group = {{ group }}
+
+- name: Copy hadoop_env.sh
+  template: src=hadoop_env.sh.j2 dest=/etc/profile.d/hadoop_env.sh mode=755
+
+- name: Set env
+  shell: source /etc/profile.d/hadoop_env.sh

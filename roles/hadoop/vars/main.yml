@@ -1,0 +1,75 @@
+---
+jvm_home: "/usr/lib/jvm"
+hadoop_version: "2.8.5"
+hadoop_path: "/home/hadoop"
+hadoop_config_path: "{{ hadoop_path }}/hadoop-{{hadoop_version}}/etc/hadoop"
+hadoop_tmp: "{{ hadoop_path }}/tmp"
+hadoop_dfs_name: "{{ hadoop_path }}/dfs/name"
+hadoop_dfs_data: "{{ hadoop_path }}/dfs/data"
+hadoop_log_path: "{{ hadoop_path }}/hadoop_logs"
+
+master_hostname: hadoop-master
+
+hadoop_create_path:
+  - "{{ hadoop_tmp }}"
+  - "{{ hadoop_dfs_name }}"
+  - "{{ hadoop_dfs_data }}"
+  - "{{ hadoop_log_path }}"
+  
+hdfs_port: 9000
+core_site_properties:
+  - {
+      "name":"fs.defaultFS",
+      "value":"hdfs://{{ master_hostname }}:{{ hdfs_port }}"
+  }
+  - {
+      "name":"hadoop.tmp.dir",
+      "value":"file:{{ hadoop_tmp }}"
+  }
+  - {
+    "name":"io.file.buffer.size",
+    "value":"131072"
+  }
+  
+dfs_namenode_httpport: 50090
+hdfs_site_properties:
+  - {
+      "name":"dfs.namenode.secondary.http-address",
+      "value":"{{ groups['hadoop-slave'][0] }}:{{ dfs_namenode_httpport }}"
+  }
+  - {
+      "name":"dfs.namenode.name.dir",
+      "value":"file:{{ hadoop_dfs_name }}"
+  }
+  - {
+      "name":"dfs.namenode.data.dir",
+      "value":"file:{{ hadoop_dfs_data }}"
+  }
+  - {
+      "name":"dfs.replication",
+      "value":"{{ groups['hadoop-slave']|length }}"
+  }
+  - {
+    "name":"dfs.permissions",
+    "value":"true"
+  }
+  - {
+    "name":"dfs.hosts",
+    "value":"{{ hadoop_config_path }}/slaves"
+  }
+  
+mapred_site_properties:
+ - {
+   "name": "mapreduce.framework.name",
+   "value": "yarn"
+ }
+ 
+yarn_site_properties:
+  - {
+    "name":"yarn.resourcemanager.hostname",
+    "value":"{{ master_hostname }}"
+  }
+  - {
+    "name":"yarn.nodemanager.aux-services",
+    "value":"mapreduce_shuffle"
+  }

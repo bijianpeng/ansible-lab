@@ -4,8 +4,10 @@
     - user
     - fetch_public_key
     - add_public_key
+    - hadoop
 
 - hosts: hadoop-slave
   roles:
     - user
     - add_public_key
+    - hadoop
