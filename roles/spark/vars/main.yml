@@ -1,0 +1,73 @@
+---
+spark_package_name: "spark-2.4.4-bin-hadoop2.7"
+spark_version: "2.4.4"
+spark_path: "/home/hadoop"
+spark_config_path: "/home/hadoop/spark-{{spark_version}}/conf"
+
+spark_worker_path: "{{ spark_path }}/spark/worker"
+spark_log_path: "{{ spark_path }}/spark/logs"
+spark_hdfs_path: "hdfs://{{ master_hostname }}:{{ hdfs_port }}/spark/history_log"
+
+spark_create_path:
+  - "{{ spark_worker_path }}"
+  - "{{ spark_log_path }}"
+
+#scala vars
+scala_path: "{{ spark_path }}"
+scala_version: "2.12.4"
+
+spark_master_port: 7077
+spark_history_ui_port: 7777
+spark_web_port: 8080
+
+spark_properties:
+  - {
+      "name":"spark.master",
+      "value":"spark://{{ master_hostname }}:{{ spark_master_port }}"
+  }
+  - {
+      "name":"spark.eventLog.dir",
+      "value":"{{ spark_hdfs_path }}"
+  }
+  - {
+      "name":"spark.eventLog.compress",
+      "value":"true"
+  }
+  - {
+      "name":"spark.history.fs.update.interval",
+      "value":"5"
+  }
+  - {
+      "name":"spark.history.ui.port",
+      "value":"{{ spark_history_ui_port }}"
+  }
+  - {
+      "name":"spark.history.fs.logDirectory ",
+      "value":"{{ spark_hdfs_path }}"
+  }
+  
+spark_env_properties:
+  - {
+      "name":"SPARK_WORKER_MEMORY",
+      "value":"2G"
+  }
+  - {
+      "name":"SPARK_WORKER_CORES",
+      "value":"1"
+  }
+  - {
+      "name":"SPARK_WORKER_INSTANCES",
+      "value":"1"
+  }
+  - {
+      "name":"SPARK_MASTER_HOST",
+      "value":"{{ master_hostname }}"
+  }
+  - {
+      "name":"SPARK_MASTER_PORT",
+      "value":"{{ spark_master_port }}"
+  }
+  - {
+      "name":"SPARK_MASTER_WEBUI_PORT",
+      "value":"{{ spark_web_port }}"
+  }

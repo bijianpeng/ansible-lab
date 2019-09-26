@@ -1,0 +1,18 @@
+---
+- name: Create Spark Path
+  file: 
+    path: "{{ item }}"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ spark_create_path }}"
+    
+- stat: path={{ spark_path }}/spark-{{ spark_version }}
+  register: spark_folder
+
+- include: install_spark.yml
+  when: not spark_folder.stat.exists
+
+- include: config_spark.yml

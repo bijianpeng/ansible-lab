@@ -1,0 +1,9 @@
+---
+- hosts: spark
+  vars:
+    user: hadoop
+    group: hadoop
+    master_hostname: hadoop-master
+    hdfs_port: 9000
+  roles:
+    - spark
