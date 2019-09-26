@@ -1,5 +1,5 @@
 ---
-- hosts: hadoop-master
+- hosts: hadoop
   roles:
     - user
     - fetch_public_key
