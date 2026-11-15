@@ -1,0 +1,9 @@
+---
+# MySQL 8.0 主从部署
+# 分组约定：mysql-master（1台）/ mysql-slave（N台）
+- name: Deploy MySQL
+  hosts: mysql-master:mysql-slave
+  gather_facts: true
+  roles:
+    - common
+    - mysql

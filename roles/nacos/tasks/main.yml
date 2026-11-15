@@ -1,0 +1,70 @@
+---
+- name: Create nacos user
+  ansible.builtin.user:
+    name: "{{ nacos_user }}"
+    shell: /sbin/nologin
+    create_home: false
+
+- name: Fail when cluster mode without mysql address
+  ansible.builtin.fail:
+    msg: "集群模式必须配置 nacos_db_host（外置 MySQL）"
+  when: nacos_db_enabled | bool and nacos_db_host | length == 0
+
+- name: Fetch nacos package
+  include_role:
+    name: fetch_package
+  vars:
+    fp_url: "{{ nacos_download_url }}"
+    fp_file: "{{ nacos_package_file }}"
+
+- name: Unarchive nacos
+  ansible.builtin.unarchive:
+    src: "{{ fp_dest }}"
+    dest: "{{ apps_base_dir }}"
+    remote_src: true
+    creates: "{{ apps_base_dir }}/nacos"
+
+- name: Create data/log directories
+  ansible.builtin.file:
+    path: "{{ nacos_base_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ nacos_user }}"
+    group: "{{ nacos_user }}"
+  loop: [data, logs]
+
+- name: Install cluster.conf
+  ansible.builtin.template:
+    src: cluster.conf.j2
+    dest: "{{ nacos_base_dir }}/conf/cluster.conf"
+    owner: "{{ nacos_user }}"
+    mode: '0644'
+  when: nacos_cluster | bool
+  notify: restart nacos
+
+- name: Install application.properties
+  ansible.builtin.template:
+    src: application.properties.j2
+    dest: "{{ nacos_base_dir }}/conf/application.properties"
+    owner: "{{ nacos_user }}"
+    mode: '0644'
+  notify: restart nacos
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: nacos.service.j2
+    dest: /etc/systemd/system/nacos.service
+    mode: '0644'
+
+- name: Fix ownership
+  ansible.builtin.file:
+    path: "{{ nacos_base_dir }}"
+    owner: "{{ nacos_user }}"
+    group: "{{ nacos_user }}"
+    recurse: true
+
+- name: Start nacos
+  ansible.builtin.systemd:
+    name: nacos
+    state: started
+    enabled: true
+    daemon_reload: true

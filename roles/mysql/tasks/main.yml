@@ -1,0 +1,117 @@
+---
+- name: Gather OS family
+  ansible.builtin.set_fact:
+    is_redhat: "{{ ansible_facts['os_family'] in ['RedHat', 'Kylin'] }}"
+
+- name: Install mysql dependencies
+  ansible.builtin.package:
+    name: "{{ ['libaio', 'numactl'] if is_redhat | bool else ['libaio1', 'numactl'] }}"
+    state: present
+
+- name: Create mysql group
+  ansible.builtin.group:
+    name: "{{ mysql_user }}"
+
+- name: Create mysql user
+  ansible.builtin.user:
+    name: "{{ mysql_user }}"
+    group: "{{ mysql_user }}"
+    shell: /sbin/nologin
+    create_home: false
+
+- name: Fetch mysql package
+  include_role:
+    name: fetch_package
+  vars:
+    fp_url: "{{ mysql_download_url }}"
+    fp_file: "{{ mysql_package_file }}"
+
+- name: Unarchive mysql
+  ansible.builtin.unarchive:
+    src: "{{ fp_dest }}"
+    dest: "{{ apps_base_dir }}"
+    remote_src: true
+    creates: "{{ apps_base_dir }}/{{ mysql_src_dir }}"
+
+- name: Create symlink /usr/local style link
+  ansible.builtin.file:
+    src: "{{ apps_base_dir }}/{{ mysql_src_dir }}"
+    dest: "{{ mysql_base_dir }}"
+    state: link
+
+- name: Create data directory
+  ansible.builtin.file:
+    path: "{{ mysql_data_dir }}"
+    state: directory
+    owner: "{{ mysql_user }}"
+    group: "{{ mysql_user }}"
+    mode: '0755'
+
+- name: Install my.cnf
+  ansible.builtin.template:
+    src: my.cnf.j2
+    dest: /etc/my.cnf
+    mode: '0644'
+  notify: restart mysql
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: mysqld.service.j2
+    dest: /etc/systemd/system/mysqld.service
+    mode: '0644'
+
+- name: Initialize datadir (first time only)
+  ansible.builtin.command: >
+    {{ mysql_base_dir }}/bin/mysqld --initialize-insecure
+    --user={{ mysql_user }} --datadir={{ mysql_data_dir }}
+  args:
+    creates: "{{ mysql_data_dir }}/mysql"
+
+- name: Start mysql
+  ansible.builtin.systemd:
+    name: mysqld
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Set root password (first time only)
+  ansible.builtin.shell: >
+    {{ mysql_base_dir }}/bin/mysql -uroot --skip-password -e
+    "ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mysql_root_password }}';"
+  register: mysql_setpwd
+  failed_when: false
+  changed_when: mysql_setpwd.rc == 0
+
+- name: Setup replication on master
+  when: mysql_replication and inventory_hostname in groups.get('mysql-master', [])
+  block:
+    - name: Create replication user on master
+      ansible.builtin.shell: >
+        {{ mysql_base_dir }}/bin/mysql -uroot -p{{ mysql_root_password }} -e
+        "CREATE USER IF NOT EXISTS '{{ mysql_repl_user }}'@'%' IDENTIFIED WITH mysql_native_password BY '{{ mysql_repl_password }}';
+        GRANT REPLICATION SLAVE ON *.* TO '{{ mysql_repl_user }}'@'%'; FLUSH PRIVILEGES;"
+      register: r
+      changed_when: r.rc == 0
+      failed_when: false
+
+- name: Setup replication on slave
+  when: mysql_replication and inventory_hostname in groups.get('mysql-slave', [])
+  block:
+    - name: Get master address
+      ansible.builtin.set_fact:
+        mysql_master_host: "{{ groups['mysql-master'] | first }}"
+
+    - name: Configure replica source
+      ansible.builtin.shell: >
+        {{ mysql_base_dir }}/bin/mysql -uroot -p{{ mysql_root_password }} -e
+        "STOP REPLICA; CHANGE REPLICATION SOURCE TO
+        SOURCE_HOST='{{ mysql_master_host }}',
+        SOURCE_PORT={{ mysql_port }},
+        SOURCE_USER='{{ mysql_repl_user }}',
+        SOURCE_PASSWORD='{{ mysql_repl_password }}',
+        SOURCE_AUTO_POSITION=1,
+        GET_SOURCE_PUBLIC_KEY=1;
+        START REPLICA;"
+      register: r
+      changed_when: r.rc == 0
+      failed_when: false

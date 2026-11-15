@@ -1,0 +1,19 @@
+[Unit]
+Description=Prometheus Server
+After=network.target
+
+[Service]
+Type=simple
+User={{ prometheus_user }}
+Group={{ prometheus_user }}
+ExecStart={{ prometheus_base_dir }}/prometheus \
+  --config.file={{ prometheus_base_dir }}/prometheus.yml \
+  --storage.tsdb.path={{ prometheus_data_dir }} \
+  --storage.tsdb.retention.time={{ prometheus_retention }} \
+  --web.listen-address=:{{ prometheus_port }}
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

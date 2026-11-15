@@ -1,0 +1,19 @@
+---
+# 通用采集 agent 安装器：exporters_to_install 为角色名列表（见 vars/exporter_catalog）
+- name: Validate requested exporters
+  ansible.builtin.fail:
+    msg: "不支持的 exporter：{{ item }}（可选：{{ exporter_catalog.keys() | join(', ') }}）"
+  loop: "{{ exporters_to_install }}"
+  when: item not in exporter_catalog
+
+- name: Create exporter user
+  ansible.builtin.user:
+    name: "{{ exporter_user }}"
+    shell: /sbin/nologin
+    create_home: false
+
+- name: Install each exporter
+  ansible.builtin.include_tasks: install_exporter.yml
+  loop: "{{ exporters_to_install }}"
+  loop_control:
+    loop_var: exporter_name

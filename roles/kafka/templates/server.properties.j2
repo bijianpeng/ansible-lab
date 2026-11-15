@@ -1,0 +1,33 @@
+# Managed by Ansible (ansible-lab)
+broker.id={{ kafka_broker_id }}
+listeners=PLAINTEXT://0.0.0.0:{{ kafka_port }}
+advertised.listeners=PLAINTEXT://{{ ansible_default_ipv4.address }}:{{ kafka_port }}
+num.network.threads=3
+num.io.threads=8
+socket.send.buffer.bytes=102400
+socket.receive.buffer.bytes=102400
+socket.request.max.bytes=104857600
+
+log.dirs={{ kafka_data_dir }}
+num.partitions={{ kafka_partitions }}
+default.replication.factor={{ kafka_replication_factor }}
+num.recovery.threads.per.data.dir=1
+offsets.topic.replication.factor={{ kafka_replication_factor }}
+transaction.state.log.replication.factor={{ kafka_replication_factor }}
+transaction.state.log.min.isr=2
+log.retention.hours=168
+log.segment.bytes=1073741824
+log.retention.check.interval.ms=300000
+
+{% if kafka_kraft | bool %}
+# ---------- KRaft mode ----------
+process.roles=broker,controller
+node.id={{ kafka_broker_id }}
+controller.quorum.voters={% for h in groups['kafka'] %}{{ groups['kafka'] | index(h) + 1 }}@{{ h }}:{{ kafka_kraft_controller_port }}{% if not loop.last %},{% endif %}{% endfor %}
+controller.listeners=PLAINTEXT://:{{ kafka_kraft_controller_port }}
+listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+inter.broker.listener.name=PLAINTEXT
+{% else %}
+# ---------- Zookeeper mode ----------
+zookeeper.connect={{ kafka_zookeeper_connect }}
+{% endif %}

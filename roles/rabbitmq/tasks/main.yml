@@ -1,0 +1,79 @@
+---
+- name: Gather OS family
+  ansible.builtin.set_fact:
+    is_redhat: "{{ ansible_facts['os_family'] in ['RedHat', 'Kylin'] }}"
+
+- name: Install rabbitmq repo (RedHat family)
+  when: is_redhat | bool
+  block:
+    - name: Install erlang from github release directly
+      ansible.builtin.package:
+        name: "https://github.com/rabbitmq/erlang-rpm/releases/download/v26.2.5/erlang-26.2.5-1.el8.{{ ansible_facts['architecture'] }}.rpm"
+        state: present
+        disable_gpg_check: true
+
+    - name: Add rabbitmq server repo
+      ansible.builtin.yum_repository:
+        name: rabbitmq-server
+        description: rabbitmq-server-rpm
+        baseurl: https://packagecloud.io/rabbitmq/rabbitmq-server/el/8/$basearch
+        gpgcheck: false
+        enabled: true
+
+- name: Install rabbitmq-server
+  ansible.builtin.package:
+    name: rabbitmq-server
+    state: present
+    update_cache: "{{ not is_redhat | bool }}"
+
+- name: Distribute erlang cookie (cluster mode)
+  ansible.builtin.copy:
+    content: "{{ rabbitmq_erlang_cookie }}"
+    dest: /var/lib/rabbitmq/.erlang.cookie
+    owner: rabbitmq
+    group: rabbitmq
+    mode: '0400'
+  when: rabbitmq_cluster | bool
+  notify: restart rabbitmq
+
+- name: Start rabbitmq
+  ansible.builtin.systemd:
+    name: rabbitmq-server
+    state: started
+    enabled: true
+
+- name: Join cluster (non-first nodes)
+  ansible.builtin.shell: |
+    rabbitmqctl stop_app
+    rabbitmqctl join_cluster rabbit@{{ hostvars[groups['rabbitmq'] | first]['ansible_hostname'] }}
+    rabbitmqctl start_app
+  when: rabbitmq_cluster | bool and inventory_hostname != groups['rabbitmq'] | first
+  register: join_result
+  changed_when: join_result.rc == 0
+  failed_when: false
+
+- name: Set cluster name
+  ansible.builtin.command: rabbitmqctl set_cluster_name {{ rabbitmq_cluster_name }}
+  when: rabbitmq_cluster | bool and inventory_hostname == groups['rabbitmq'] | first
+  changed_when: false
+  failed_when: false
+
+- name: Enable management plugin
+  ansible.builtin.command: rabbitmq-plugins enable rabbitmq_management
+  changed_when: false
+  failed_when: false
+
+- name: Create vhosts
+  ansible.builtin.command: rabbitmqctl add_vhost {{ item }}
+  loop: "{{ rabbitmq_vhosts }}"
+  when: inventory_hostname == groups['rabbitmq'] | first
+  failed_when: false
+
+- name: Create users
+  ansible.builtin.shell: >
+    rabbitmqctl add_user {{ item.user }} '{{ item.password }}'
+    && rabbitmqctl set_permissions -p {{ item.vhost | default('/') }} {{ item.user }} ".*" ".*" ".*"
+    && rabbitmqctl set_user_tags {{ item.user }} {{ item.tags | default('') }}
+  loop: "{{ rabbitmq_users }}"
+  when: inventory_hostname == groups['rabbitmq'] | first
+  failed_when: false

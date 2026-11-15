@@ -1,0 +1,15 @@
+---
+# Elasticsearch（tar 自带 bundled JDK，无需外部 jdk role）
+elasticsearch_version: "8.13.4"
+elasticsearch_package_file: "elasticsearch-{{ elasticsearch_version }}-linux-{{ 'x86_64' if ansible_facts['architecture'] == 'x86_64' else 'aarch64' }}.tar.gz"
+elasticsearch_download_url: "https://repo.huaweicloud.com/elasticsearch/{{ elasticsearch_version }}/{{ elasticsearch_package_file }}"
+
+elasticsearch_user: "es"
+elasticsearch_cluster_name: "es-cluster"
+elasticsearch_base_dir: "{{ apps_base_dir }}/elasticsearch"
+elasticsearch_data_dir: "{{ data_base_dir }}/es-data"
+elasticsearch_http_port: 9200
+elasticsearch_heap_size: "2g"        # 建议不超过物理内存 50%，且 ≤ 31g
+elasticsearch_memlock_enabled: true
+# 实验环境默认关闭安全认证；生产务必 true 并配置 TLS/密码
+elasticsearch_security_enabled: false

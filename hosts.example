@@ -1,0 +1,78 @@
+# 复制为 hosts 并按环境修改（hosts 已被 .gitignore 忽略）
+# 所有入口 playbook 均基于以下分组约定
+
+[mysql-master]
+# 10.0.0.1
+
+[mysql-slave]
+# 10.0.0.2
+# 10.0.0.3
+
+[redis-master]
+# 10.0.0.1
+
+[redis-replica]
+# 10.0.0.2
+# 10.0.0.3
+
+[nginx]
+# 10.0.0.1
+
+[zookeeper-servers]
+# 10.0.0.1
+# 10.0.0.2
+# 10.0.0.3
+
+[kafka]
+# 10.0.0.1
+# 10.0.0.2
+# 10.0.0.3
+
+[elasticsearch]
+# 10.0.0.1
+# 10.0.0.2
+# 10.0.0.3
+
+[kibana]
+# 10.0.0.4
+
+[minio]
+# 10.0.0.1
+# 10.0.0.2
+# 10.0.0.3
+# 10.0.0.4
+
+[rabbitmq]
+# 10.0.0.1
+# 10.0.0.2
+# 10.0.0.3
+
+[rocketmq-nameserver]
+# 10.0.0.1
+
+[rocketmq-broker]
+# 10.0.0.2
+# 10.0.0.3
+
+[nacos]
+# 10.0.0.1
+# 10.0.0.2
+# 10.0.0.3
+
+[mongodb]
+# 10.0.0.1
+# 10.0.0.2
+# 10.0.0.3
+
+[prometheus]
+# 10.0.0.10
+
+[grafana]
+# 10.0.0.11
+
+# 已有大数据组件（保留原有分组）
+[hadoop]
+[hadoop-slave]
+[spark]
+[hadoop:children]
+# hadoop-master

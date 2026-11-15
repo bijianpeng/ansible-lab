@@ -1,0 +1,16 @@
+---
+# Elasticsearch 集群 + Kibana
+# 分组约定：elasticsearch（≥3台）/ kibana（1台）
+- name: Deploy Elasticsearch
+  hosts: elasticsearch
+  gather_facts: true
+  roles:
+    - common
+    - elasticsearch
+
+- name: Deploy Kibana
+  hosts: kibana
+  gather_facts: true
+  roles:
+    - common
+    - kibana

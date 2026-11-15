@@ -1,0 +1,14 @@
+[Unit]
+Description=Prometheus Exporter - {{ exp_service }}
+After=network.target
+
+[Service]
+Type=simple
+User={{ exporter_user }}
+Group={{ exporter_user }}
+ExecStart=/usr/local/bin/{{ exp_service }} {{ exp_flags }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

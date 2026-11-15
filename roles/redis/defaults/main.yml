@@ -1,0 +1,19 @@
+---
+# Redis 源码编译安装（官方只发布源码）
+redis_version: "7.2.5"
+redis_package_file: "redis-{{ redis_version }}.tar.gz"
+redis_download_url: "https://repo.huaweicloud.com/redis/{{ redis_package_file }}"
+
+redis_user: "redis"
+redis_base_dir: "{{ apps_base_dir }}/redis"
+redis_data_dir: "{{ data_base_dir }}/redis"
+redis_port: 6379
+redis_requirepass: "Redis_123"
+redis_maxmemory: "4gb"
+redis_maxmemory_policy: "allkeys-lru"
+
+# 哨兵（redis_sentinel: true 时在 master 同机或独立机组部署）
+redis_sentinel: false
+redis_sentinel_port: 26379
+redis_sentinel_quorum: 2
+redis_master_name: "mymaster"

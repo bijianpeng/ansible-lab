@@ -1,0 +1,16 @@
+# Managed by Ansible (ansible-lab)
+brokerClusterName = DefaultCluster
+brokerName = broker-{{ inventory_hostname | replace('.', '-') }}
+brokerId = 0
+brokerIP1 = {{ ansible_default_ipv4.address }}
+namesrvAddr = {{ rocketmq_namesrv_addr }}
+
+listenPort = {{ rocketmq_broker_port }}
+deleteWhen = 04
+fileReservedTime = 48
+brokerRole = ASYNC_MASTER
+flushDiskType = ASYNC_FLUSH
+
+storePathRootDir = {{ rocketmq_store_dir }}
+storePathCommitLog = {{ rocketmq_store_dir }}/commitlog
+autoCreateTopicEnable = true

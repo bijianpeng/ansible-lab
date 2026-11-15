@@ -1,0 +1,106 @@
+---
+# 安装单个 exporter（由 main.yml 循环调用，exporter_name 为循环变量）
+- name: Resolve exporter definition
+  ansible.builtin.set_fact:
+    exp: "{{ exporter_catalog[exporter_name] }}"
+
+- name: Compute arch
+  ansible.builtin.set_fact:
+    exp_arch: "{{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' }}"
+
+# 各仓库发布文件的命名规则不同，按角色生成文件名
+- name: Compute package file (prometheus style: name_exporter-x.y.linux-amd64.tar.gz)
+  ansible.builtin.set_fact:
+    exp_file: "{{ exporter_name }}_exporter-{{ exp.version }}.linux-{{ exp_arch }}.tar.gz"
+  when: exporter_name in ['node', 'mysqld', 'blackbox', 'elasticsearch', 'kafka']
+
+- name: Compute package file (redis style: redis_exporter-vx.y.linux-amd64.tar.gz)
+  ansible.builtin.set_fact:
+    exp_file: "redis_exporter-v{{ exp.version }}.linux-{{ exp_arch }}.tar.gz"
+  when: exporter_name == 'redis'
+
+- name: Compute package file (percona mongodb style)
+  ansible.builtin.set_fact:
+    exp_file: "mongodb_exporter-{{ exp.version }}.linux-{{ exp_arch }}.tar.gz"
+  when: exporter_name == 'mongodb'
+
+- name: Compute package file (nginx style: underscore linux)
+  ansible.builtin.set_fact:
+    exp_file: "nginx-prometheus-exporter_{{ exp.version }}_linux_{{ exp_arch }}.tar.gz"
+  when: exporter_name == 'nginx'
+
+- name: Fetch exporter package
+  include_role:
+    name: fetch_package
+  vars:
+    fp_url: "https://github.com/{{ exp.repo }}/releases/download/v{{ exp.version }}/{{ exp_file }}"
+    fp_file: "{{ exp_file }}"
+
+- name: Create exporter directory
+  ansible.builtin.file:
+    path: "{{ exporter_install_dir }}/{{ exporter_name }}"
+    state: directory
+    mode: '0755'
+
+- name: Unarchive exporter (flat archive - nginx)
+  ansible.builtin.unarchive:
+    src: "{{ fp_dest }}"
+    dest: "{{ exporter_install_dir }}/{{ exporter_name }}"
+    remote_src: true
+  when: exporter_name == 'nginx'
+
+- name: Unarchive exporter (with top dir)
+  ansible.builtin.unarchive:
+    src: "{{ fp_dest }}"
+    dest: "{{ exporter_install_dir }}/{{ exporter_name }}"
+    remote_src: true
+    extra_opts: [--strip-components=1]
+  when: exporter_name != 'nginx'
+
+- name: Place binary into PATH
+  ansible.builtin.copy:
+    src: "{{ exporter_install_dir }}/{{ exporter_name }}/{{ exp.bin }}"
+    dest: "/usr/local/bin/{{ exp.bin }}"
+    mode: '0755'
+    remote_src: true
+
+# mysqld_exporter 需要连接配置
+- name: Install mysqld client config
+  when: exporter_name == 'mysqld'
+  block:
+    - name: Create config directory
+      ansible.builtin.file:
+        path: /etc/exporter/mysqld
+        state: directory
+        mode: '0750'
+        owner: "{{ exporter_user }}"
+
+    - name: Render my.cnf
+      ansible.builtin.copy:
+        dest: /etc/exporter/mysqld/my.cnf
+        mode: '0600'
+        owner: "{{ exporter_user }}"
+        content: |
+          [client]
+          user=root
+          password={{ mysql_root_password | default('ChangeMe_123') }}
+      vars:
+        exp_service: "{{ exp.bin }}"
+      notify: restart exporter
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: exporter.service.j2
+    dest: "/etc/systemd/system/{{ exp.bin }}.service"
+    mode: '0644'
+  vars:
+    exp_service: "{{ exp.bin }}"
+    exp_flags: "{{ exp.flags | trim }}"
+  notify: restart exporter
+
+- name: Start exporter
+  ansible.builtin.systemd:
+    name: "{{ exp.bin }}"
+    state: started
+    enabled: true
+    daemon_reload: true

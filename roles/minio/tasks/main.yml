@@ -1,0 +1,72 @@
+---
+- name: Create minio user
+  ansible.builtin.user:
+    name: "{{ minio_user }}"
+    shell: /sbin/nologin
+    create_home: false
+
+- name: Fetch minio binary
+  include_role:
+    name: fetch_package
+  vars:
+    fp_url: "{{ minio_download_url }}"
+    fp_file: "{{ minio_package_file }}"
+
+- name: Install minio binary
+  ansible.builtin.copy:
+    src: "{{ fp_dest }}"
+    dest: "{{ minio_base_dir }}/minio"
+    mode: '0755'
+    remote_src: true
+
+- name: Create data directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ minio_user }}"
+    group: "{{ minio_user }}"
+    mode: '0755'
+  loop: "{{ minio_data_dirs }}"
+
+- name: Compute MINIO_VOLUMES
+  ansible.builtin.set_fact:
+    minio_volumes: "{% if minio_distributed | bool %}{% for h in groups['minio'] %}{% for d in minio_data_dirs %}http://{{ h }}:{{ minio_port }}{{ d }} {% endfor %}{% endfor %}{% else %}{{ minio_data_dirs | join(' ') }}{% endif %}"
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: minio.env.j2
+    dest: /etc/default/minio
+    mode: '0640'
+    owner: "{{ minio_user }}"
+  notify: restart minio
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: minio.service.j2
+    dest: /etc/systemd/system/minio.service
+    mode: '0644'
+
+- name: Start minio
+  ansible.builtin.systemd:
+    name: minio
+    state: started
+    enabled: true
+    daemon_reload: true
+
+# ---------- mc 客户端（仅第一台） ----------
+- name: Install mc client
+  when: inventory_hostname == groups['minio'] | first
+  block:
+    - name: Download mc
+      ansible.builtin.get_url:
+        url: "{{ mc_download_url }}"
+        dest: /usr/local/bin/mc
+        mode: '0755'
+        timeout: "{{ download_timeout }}"
+
+    - name: Alias local minio
+      ansible.builtin.command: >
+        mc alias set local http://{{ ansible_default_ipv4.address }}:{{ minio_port }}
+        {{ minio_root_user }} {{ minio_root_password }}
+      changed_when: false
+      failed_when: false

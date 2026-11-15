@@ -1,0 +1,9 @@
+---
+# Grafana OSS（rpm/deb 官方包）
+grafana_version: "10.4.2"
+grafana_port: 3000
+grafana_admin_user: "admin"
+grafana_admin_password: "Grafana_123"
+
+# 数据源：默认指向组内第一台 prometheus
+grafana_datasource_url: "http://{{ groups['prometheus'] | first }}:9090"

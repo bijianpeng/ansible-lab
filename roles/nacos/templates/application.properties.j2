@@ -1,0 +1,28 @@
+# Managed by Ansible (ansible-lab)
+server.servlet.contextPath=/nacos
+server.port={{ nacos_port }}
+nacos.naming.empty-service.auto-clean=true
+nacos.naming.empty-service.clean.initial-delay-ms=50000
+nacos.naming.empty-service.clean.period-time-ms=30000
+
+management.metrics.export.elastic.enabled=false
+management.metrics.export.influx.enabled=false
+
+server.tomcat.accesslog.enabled=true
+server.tomcat.accesslog.pattern=%h %l %u %t "%r" %s %b %D %{User-Agent}i %{Request-Source}i
+server.tomcat.basedir=file:.
+
+nacos.security.ignore.urls=/,/error,/**/*.css,/**/*.js,/**/*.html,/**/*.map,/**/*.svg,/**/*.png,/**/*.ico,/console-ui/public/**,/v1/auth/**,/v1/console/health/**,/actuator/**,/v1/console/server/**
+
+spring.sql.init.platform=mysql
+{% if nacos_db_enabled | bool %}
+db.num=1
+db.url.0=jdbc:mysql://{{ nacos_db_host }}/{{ nacos_db_name }}?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC
+db.user.0={{ nacos_db_user }}
+db.password.0={{ nacos_db_password }}
+{% endif %}
+
+nacos.naming.distro.taskDispatchThreadCount=1
+nacos.naming.distro.taskDispatchQueueCapacity=1000
+nacos.naming.distro.batchSyncKeyCount=1000
+nacos.naming.distro.syncDataRetryPeriod=5*1000

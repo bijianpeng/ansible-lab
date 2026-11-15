@@ -1,0 +1,31 @@
+---
+# Prometheus Server
+prometheus_version: "2.52.0"
+prometheus_package_file: "prometheus-{{ prometheus_version }}.linux-{{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' }}.tar.gz"
+prometheus_download_url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/{{ prometheus_package_file }}"
+
+prometheus_user: "prometheus"
+prometheus_base_dir: "{{ apps_base_dir }}/prometheus"
+prometheus_data_dir: "{{ data_base_dir }}/prometheus"
+prometheus_port: 9090
+prometheus_retention: "15d"
+
+# 抓取任务：自动按组发现（组名: [job 名, 端口]，组不存在则跳过）
+prometheus_scrape_from_groups:
+  node: { job: node, group: all, port: 9100 }
+  mysqld: { job: mysqld, group: "mysql-master:mysql-slave", port: 9104 }
+  redis: { job: redis, group: "redis-master:redis-replica", port: 9121 }
+  mongodb: { job: mongodb, group: mongodb, port: 9216 }
+  elasticsearch: { job: elasticsearch, group: elasticsearch, port: 9114 }
+  kafka: { job: kafka, group: kafka, port: 9308 }
+  rabbitmq: { job: rabbitmq, group: rabbitmq, port: 9419 }
+  nginx: { job: nginx, group: nginx, port: 9113 }
+
+# 额外静态抓取目标（blackbox 等）
+prometheus_extra_jobs: []
+# prometheus_extra_jobs:
+#   - job_name: blackbox-http
+#     scrape_interval: 30s
+#     metrics_path: /probe
+#     params: { module: [http_2xx] }
+#     static_targets: ["https://example.com"]

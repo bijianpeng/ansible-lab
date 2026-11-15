@@ -1,0 +1,4 @@
+# Managed by Ansible (ansible-lab)
+{% for h in groups['nacos'] %}
+{{ h }}:{{ nacos_port }}
+{% endfor %}

@@ -1,0 +1,24 @@
+---
+# MongoDB 7.0（官方 fastdl tar，按 OS/架构选择包）
+mongodb_version: "7.0.14"
+mongodb_os_map:
+  RedHat: "rhel8"
+  Debian: "ubuntu2204"
+mongodb_package_file: "mongodb-linux-{{ ansible_facts['architecture'] }}-{{ mongodb_os_map[ansible_facts['os_family'] if ansible_facts['os_family'] in mongodb_os_map else 'RedHat'] }}-{{ mongodb_version }}.tgz"
+mongodb_download_url: "https://fastdl.mongodb.org/linux/{{ mongodb_package_file }}"
+
+mongodb_user: "mongod"
+mongodb_base_dir: "{{ apps_base_dir }}/mongodb"
+mongodb_data_dir: "{{ data_base_dir }}/mongodb"
+mongodb_port: 27017
+
+# 副本集（实验环境免认证；生产请启用 keyfile + auth）
+mongodb_replset_enabled: true
+mongodb_replset_name: "rs0"
+mongodb_keyfile_enabled: false
+mongodb_keyfile_content: "CHANGE_ME_RANDOM_64_CHARS________________________________"
+
+# mongosh（rs.initiate 用）
+mongosh_version: "2.2.15"
+mongosh_package_file: "mongosh-{{ mongosh_version }}-linux-{{ 'x64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' }}.tgz"
+mongosh_download_url: "https://github.com/mongodb-js/mongosh/releases/download/v{{ mongosh_version }}/{{ mongosh_package_file }}"

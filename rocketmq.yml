@@ -1,0 +1,10 @@
+---
+# RocketMQ 5.x（NameServer + Broker）
+# 分组约定：rocketmq-nameserver / rocketmq-broker（可同机）
+- name: Deploy RocketMQ
+  hosts: rocketmq-nameserver:rocketmq-broker
+  gather_facts: true
+  roles:
+    - common
+    - jdk
+    - rocketmq

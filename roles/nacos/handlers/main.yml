@@ -1,0 +1,6 @@
+---
+- name: restart nacos
+  ansible.builtin.systemd:
+    name: nacos
+    state: restarted
+    daemon_reload: true

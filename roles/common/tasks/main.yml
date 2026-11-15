@@ -1,0 +1,97 @@
+---
+# 系统初始化：兼容 麒麟 V10 / CentOS 8 (RedHat 系) 与 Ubuntu (Debian 系)
+
+- name: Gather OS family variables
+  ansible.builtin.set_fact:
+    is_redhat: "{{ ansible_facts['os_family'] in ['RedHat', 'Kylin'] }}"
+    is_debian: "{{ ansible_facts['os_family'] == 'Debian' }}"
+
+# ---------- 防火墙 ----------
+- name: Disable firewalld (RedHat family)
+  ansible.builtin.systemd:
+    name: firewalld
+    state: stopped
+    enabled: false
+  when: common_disable_firewall and is_redhat | bool
+  ignore_errors: true
+
+- name: Disable ufw (Debian family)
+  ansible.builtin.systemd:
+    name: ufw
+    state: stopped
+    enabled: false
+  when: common_disable_firewall and is_debian | bool
+  ignore_errors: true
+
+# ---------- SELinux ----------
+- name: Disable SELinux config (RedHat family)
+  ansible.builtin.lineinfile:
+    path: /etc/selinux/config
+    regexp: '^SELINUX='
+    line: 'SELINUX=disabled'
+  when: common_disable_selinux and is_redhat | bool
+  ignore_errors: true
+
+- name: Set SELinux permissive runtime
+  ansible.builtin.command: setenforce 0
+  when: common_disable_selinux and is_redhat | bool
+  changed_when: false
+  ignore_errors: true
+
+# ---------- swap ----------
+- name: Disable swap
+  ansible.builtin.shell: swapoff -a && sed -ri 's/^\s*(.*\sswap\s+sw\s+.*)$/#\1/' /etc/fstab
+  when: common_disable_swap | bool
+  changed_when: false
+
+# ---------- 时间同步 ----------
+- name: Install base packages
+  ansible.builtin.package:
+    name: "{{ common_packages_redhat if is_redhat | bool else common_packages_debian }}"
+    state: present
+
+- name: Config chrony (RedHat family)
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    mode: '0644'
+  when: common_time_sync | bool and is_redhat | bool
+  notify: restart chrony
+
+- name: Config chrony (Debian family)
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+    mode: '0644'
+  when: common_time_sync | bool and is_debian | bool
+  notify: restart chrony
+
+- name: Start chrony
+  ansible.builtin.systemd:
+    name: chronyd
+    state: started
+    enabled: true
+  when: common_time_sync | bool
+
+# ---------- 内核参数 / limits ----------
+- name: Write sysctl config
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    line: "{{ item.key }} = {{ item.value }}"
+    regexp: "^{{ item.key | regex_escape }}"
+  loop: "{{ common_sysctl | dict2items }}"
+  ignore_errors: true
+  notify: apply sysctl
+
+- name: Apply sysctl now
+  ansible.builtin.command: sysctl -w "{{ item.key }}={{ item.value }}"
+  loop: "{{ common_sysctl | dict2items }}"
+  changed_when: false
+  failed_when: false
+
+- name: Config limits
+  ansible.builtin.lineinfile:
+    path: /etc/security/limits.conf
+    line: "{{ item.domain }} {{ item.type }} {{ item.item }} {{ item.value }}"
+    create: true
+  loop: "{{ common_limits }}"

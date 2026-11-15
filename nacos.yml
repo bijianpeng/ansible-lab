@@ -1,0 +1,10 @@
+---
+# Nacos 注册配置中心（集群需外置 MySQL 并配 nacos_db_host）
+# 分组约定：nacos
+- name: Deploy Nacos
+  hosts: nacos
+  gather_facts: true
+  roles:
+    - common
+    - jdk
+    - nacos

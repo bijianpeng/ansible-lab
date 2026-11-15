@@ -1,0 +1,37 @@
+---
+- name: Gather OS family
+  ansible.builtin.set_fact:
+    is_redhat: "{{ ansible_facts['os_family'] in ['RedHat', 'Kylin'] }}"
+
+- name: Install grafana (RedHat family)
+  ansible.builtin.package:
+    name: "https://dl.grafana.com/oss/release/grafana-{{ grafana_version }}-1.{{ ansible_facts['architecture'] }}.rpm"
+    state: present
+    disable_gpg_check: true
+  when: is_redhat | bool
+
+- name: Install grafana (Debian family)
+  ansible.builtin.apt:
+    deb: "https://dl.grafana.com/oss/release/grafana_{{ grafana_version }}_{{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' }}.deb"
+    state: present
+  when: not is_redhat | bool
+
+- name: Provision prometheus datasource
+  ansible.builtin.template:
+    src: datasource.yml.j2
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+    mode: '0644'
+  notify: restart grafana
+
+- name: Set admin password
+  ansible.builtin.lineinfile:
+    path: /etc/grafana/grafana.ini
+    regexp: '^;?admin_password'
+    line: "admin_password = {{ grafana_admin_password }}"
+  notify: restart grafana
+
+- name: Start grafana
+  ansible.builtin.systemd:
+    name: grafana-server
+    state: started
+    enabled: true

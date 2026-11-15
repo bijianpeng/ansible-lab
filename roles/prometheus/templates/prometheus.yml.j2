@@ -1,0 +1,33 @@
+# Managed by Ansible (ansible-lab)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+{% for cfg in prometheus_scrape_groups.values() %}
+{% set members = [] %}
+{% for g in cfg.group.split(':') %}
+{% if g in groups %}
+{% for h in groups[g] %}
+{% if h not in members %}{{ members.append(h) }}{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% if members | length > 0 %}
+  - job_name: {{ cfg.job }}
+    static_configs:
+      - targets: [{% for h in members %}{{ h }}:{{ cfg.port }}{% if not loop.last %}, {% endif %}{% endfor %}]
+
+{% endif %}
+{% endfor %}
+{% for extra in prometheus_extra_jobs %}
+  - job_name: {{ extra.job_name }}
+{% if extra.scrape_interval is defined %}    scrape_interval: {{ extra.scrape_interval }}
+{% endif %}    metrics_path: {{ extra.metrics_path | default('/metrics') }}
+{% if extra.params is defined %}    params:
+{% for k, v in extra.params.items() %}      {{ k }}: [{% for x in v %}{{ x }}{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endfor %}{% endif %}
+    static_configs:
+      - targets: [{% for t in extra.static_targets %}{{ t }}{% if not loop.last %}, {% endif %}{% endfor %}]
+
+{% endfor %}

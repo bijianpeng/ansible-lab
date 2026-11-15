@@ -1,0 +1,21 @@
+---
+# MinIO（GitHub Release 版本化二进制，缓存友好）
+minio_release: "RELEASE.2025-04-22T22-12-23Z"
+minio_arch: "{{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' }}"
+minio_package_file: "minio.{{ minio_release }}.linux-{{ minio_arch }}"
+minio_download_url: "https://github.com/minio/minio/releases/download/{{ minio_release }}/{{ minio_package_file }}"
+
+# mc 客户端（装在组内第一台）
+mc_download_url: "https://dl.min.io/client/mc/release/linux-{{ minio_arch }}/mc"
+
+minio_user: "minio-user"
+minio_base_dir: "{{ apps_base_dir }}/minio"
+minio_port: 9000
+minio_console_port: 9001
+minio_root_user: "minioadmin"
+minio_root_password: "MinIO_123456"
+
+# 单机模式数据目录；分布式模式设 minio_distributed: true，自动按组拼接（每节点盘数=列表长度，需 ≥2）
+minio_distributed: false
+minio_data_dirs:
+  - "{{ data_base_dir }}/minio1"

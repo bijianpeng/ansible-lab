@@ -1,0 +1,10 @@
+---
+# Redis 主从 + 哨兵部署
+# 分组约定：redis-master（1台）/ redis-replica（N台）
+# 哨兵：在需要的机器 host_vars 里设 redis_sentinel: true（或组变量）
+- name: Deploy Redis
+  hosts: redis-master:redis-replica
+  gather_facts: true
+  roles:
+    - common
+    - redis

@@ -1,0 +1,14 @@
+[Unit]
+Description=Redis Sentinel
+After=network.target redis.service
+
+[Service]
+Type=simple
+User={{ redis_user }}
+Group={{ redis_user }}
+ExecStart={{ redis_base_dir }}/bin/redis-sentinel {{ redis_base_dir }}/conf/sentinel.conf
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

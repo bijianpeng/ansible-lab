@@ -1,0 +1,10 @@
+---
+# MinIO 对象存储：单机或分布式（≥4节点×2盘才支持纠删码）
+# 分组约定：minio
+# 分布式：group_vars/minio 里设 minio_distributed: true
+- name: Deploy MinIO
+  hosts: minio
+  gather_facts: true
+  roles:
+    - common
+    - minio

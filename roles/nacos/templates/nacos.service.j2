@@ -1,0 +1,16 @@
+[Unit]
+Description=Nacos Server
+After=network.target
+
+[Service]
+Type=forking
+User={{ nacos_user }}
+Group={{ nacos_user }}
+Environment="JAVA_HOME={{ java_home }}"
+ExecStart=/bin/sh -c '{{ nacos_base_dir }}/bin/startup.sh -m {{ "cluster" if nacos_cluster | bool else "standalone" }}'
+ExecStop=/bin/sh -c '{{ nacos_base_dir }}/bin/shutdown.sh'
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

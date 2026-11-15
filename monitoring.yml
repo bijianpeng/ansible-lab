@@ -1,0 +1,61 @@
+---
+# 监控全家桶：Prometheus Server + Grafana + 各类采集 agent
+# 执行顺序：先部署各中间件，再跑本入口
+# blackbox_exporter 默认装在 prometheus 组（拨测探针）
+- name: Deploy Prometheus Server
+  hosts: prometheus
+  gather_facts: true
+  roles:
+    - common
+    - prometheus
+    - { role: exporter, vars: { exporters_to_install: ["blackbox"] } }
+
+- name: Deploy Grafana
+  hosts: grafana
+  gather_facts: true
+  roles:
+    - common
+    - grafana
+
+# ---------- 采集 agent（node 全节点，其余按组件分组） ----------
+- name: Exporters - node (all)
+  hosts: all
+  gather_facts: true
+  roles:
+    - { role: exporter, vars: { exporters_to_install: ["node"] } }
+
+- name: Exporters - mysqld
+  hosts: mysql-master:mysql-slave
+  gather_facts: true
+  roles:
+    - { role: exporter, vars: { exporters_to_install: ["mysqld"] } }
+
+- name: Exporters - redis
+  hosts: redis-master:redis-replica
+  gather_facts: true
+  roles:
+    - { role: exporter, vars: { exporters_to_install: ["redis"] } }
+
+- name: Exporters - mongodb
+  hosts: mongodb
+  gather_facts: true
+  roles:
+    - { role: exporter, vars: { exporters_to_install: ["mongodb"] } }
+
+- name: Exporters - elasticsearch
+  hosts: elasticsearch
+  gather_facts: true
+  roles:
+    - { role: exporter, vars: { exporters_to_install: ["elasticsearch"] } }
+
+- name: Exporters - kafka
+  hosts: kafka
+  gather_facts: true
+  roles:
+    - { role: exporter, vars: { exporters_to_install: ["kafka"] } }
+
+- name: Exporters - nginx
+  hosts: nginx
+  gather_facts: true
+  roles:
+    - { role: exporter, vars: { exporters_to_install: ["nginx"] } }

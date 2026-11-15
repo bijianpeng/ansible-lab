@@ -1,0 +1,14 @@
+# Managed by Ansible (ansible-lab)
+cluster.name: {{ elasticsearch_cluster_name }}
+node.name: {{ inventory_hostname }}
+path.data: {{ elasticsearch_data_dir }}
+path.logs: {{ elasticsearch_base_dir }}/logs
+
+network.host: 0.0.0.0
+http.port: {{ elasticsearch_http_port }}
+
+discovery.seed_hosts: [{% for h in groups['elasticsearch'] %}{{ h }}{% if not loop.last %}, {% endif %}{% endfor %}]
+cluster.initial_master_nodes: [{% for h in groups['elasticsearch'] %}{{ h }}{% if not loop.last %}, {% endif %}{% endfor %}]
+
+xpack.security.enabled: {{ elasticsearch_security_enabled | lower }}
+xpack.security.enrollment.enabled: {{ elasticsearch_security_enabled | lower }}

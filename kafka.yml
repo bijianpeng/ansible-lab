@@ -1,0 +1,10 @@
+---
+# Kafka 集群（ZK 模式复用已有 zookeeper-servers 组；KRaft 模式设 kafka_kraft: true）
+# 分组约定：kafka（≥3台）
+- name: Deploy Kafka
+  hosts: kafka
+  gather_facts: true
+  roles:
+    - common
+    - jdk
+    - kafka

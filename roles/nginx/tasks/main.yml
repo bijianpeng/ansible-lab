@@ -1,0 +1,80 @@
+---
+- name: Gather OS family
+  ansible.builtin.set_fact:
+    is_redhat: "{{ ansible_facts['os_family'] in ['RedHat', 'Kylin'] }}"
+
+- name: Setup nginx repo (RedHat family)
+  when: is_redhat | bool
+  block:
+    - name: Import nginx GPG key
+      ansible.builtin.rpm_key:
+        key: https://nginx.org/keys/nginx_signing.key
+        state: present
+
+    - name: Install nginx repo file
+      ansible.builtin.yum_repository:
+        name: nginx-stable
+        description: nginx stable repo
+        baseurl: https://nginx.org/packages/centos/8/$basearch/
+        gpgcheck: true
+        gpgkey: https://nginx.org/keys/nginx_signing.key
+        enabled: true
+
+- name: Setup nginx repo (Debian family)
+  when: not is_redhat | bool
+  block:
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name: [curl, gnupg2, ca-certificates, lsb-release]
+        state: present
+
+    - name: Add nginx signing key
+      ansible.builtin.apt_key:
+        url: https://nginx.org/keys/nginx_signing.key
+        state: present
+
+    - name: Add nginx apt repo
+      ansible.builtin.apt_repository:
+        repo: "deb https://nginx.org/packages/ubuntu {{ ansible_distribution_release }} nginx"
+        state: present
+        filename: nginx
+
+- name: Install nginx
+  ansible.builtin.package:
+    name: "{{ 'nginx-' + nginx_version if nginx_version and is_redhat | bool else ('nginx=' + nginx_version + '-1~' + ansible_distribution_release if nginx_version else 'nginx') }}"
+    state: present
+    update_cache: "{{ not is_redhat | bool }}"
+
+- name: Tune nginx.conf worker settings
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - { regexp: '^worker_processes', line: 'worker_processes  {{ nginx_worker_processes }};' }
+    - { regexp: '^\s*worker_connections', line: '    worker_connections  {{ nginx_worker_connections }};' }
+    - { regexp: '^\s*keepalive_timeout', line: '    keepalive_timeout  {{ nginx_keepalive_timeout }};' }
+    - { regexp: '^    client_max_body_size', line: '    client_max_body_size  {{ nginx_client_max_body_size }};' }
+  notify: reload nginx
+
+- name: Ensure client_max_body_size present in http block
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: '^    client_max_body_size'
+    line: '    client_max_body_size  {{ nginx_client_max_body_size }};'
+    insertafter: 'http {'
+  notify: reload nginx
+
+- name: Render app upstream/server config
+  ansible.builtin.template:
+    src: app.conf.j2
+    dest: /etc/nginx/conf.d/app.conf
+    mode: '0644'
+  when: nginx_upstreams | length > 0 or nginx_servers | length > 0
+  notify: reload nginx
+
+- name: Start nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: started
+    enabled: true

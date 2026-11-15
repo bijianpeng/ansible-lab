@@ -1,0 +1,9 @@
+---
+# Nginx 反向代理/负载均衡
+# 分组约定：nginx（目标机组）；upstream 后端地址在 group_vars/nginx 里配 nginx_upstreams/nginx_servers
+- name: Deploy Nginx
+  hosts: nginx
+  gather_facts: true
+  roles:
+    - common
+    - nginx

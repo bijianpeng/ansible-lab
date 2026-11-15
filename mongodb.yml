@@ -1,0 +1,9 @@
+---
+# MongoDB 副本集
+# 分组约定：mongodb（副本集 ≥3台）
+- name: Deploy MongoDB
+  hosts: mongodb
+  gather_facts: true
+  roles:
+    - common
+    - mongodb

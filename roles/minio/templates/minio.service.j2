@@ -1,0 +1,16 @@
+[Unit]
+Description=MinIO Object Storage
+After=network.target
+
+[Service]
+Type=simple
+User={{ minio_user }}
+Group={{ minio_user }}
+EnvironmentFile=/etc/default/minio
+ExecStart={{ minio_base_dir }}/minio server $MINIO_OPTS $MINIO_VOLUMES
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+---
+# RocketMQ 5.x（依赖 jdk role）
+rocketmq_version: "5.3.1"
+rocketmq_package_file: "rocketmq-all-{{ rocketmq_version }}-bin-release.zip"
+rocketmq_download_url: "https://repo.huaweicloud.com/apache/rocketmq/{{ rocketmq_version }}/{{ rocketmq_package_file }}"
+
+rocketmq_user: "rocketmq"
+rocketmq_base_dir: "{{ apps_base_dir }}/rocketmq"
+rocketmq_store_dir: "{{ data_base_dir }}/rocketmq"
+
+# JVM（默认脚本 4g/8g 太大，按机器调整）
+rocketmq_namesrv_heap: "512m"
+rocketmq_broker_heap: "2g"
+
+rocketmq_namesrv_port: 9876
+rocketmq_broker_port: 10911

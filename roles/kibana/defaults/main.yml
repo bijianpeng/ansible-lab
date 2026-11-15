@@ -1,0 +1,9 @@
+---
+# Kibana（与 elasticsearch 版本保持一致）
+kibana_version: "8.13.4"
+kibana_package_file: "kibana-{{ kibana_version }}-linux-{{ 'x86_64' if ansible_facts['architecture'] == 'x86_64' else 'aarch64' }}.tar.gz"
+kibana_download_url: "https://repo.huaweicloud.com/kibana/{{ kibana_version }}/{{ kibana_package_file }}"
+
+kibana_user: "kibana"
+kibana_base_dir: "{{ apps_base_dir }}/kibana"
+kibana_server_port: 5601

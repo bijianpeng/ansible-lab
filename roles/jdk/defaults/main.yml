@@ -1,0 +1,25 @@
+---
+# JDK 版本：8 / 11 / 17
+jdk_major: 11
+
+# 安装方式：package（OS 包管理器）或 tar（官方二进制，适合麒麟 arm 等无包场景）
+jdk_install_mode: package
+
+# tar 方式的下载地址（package 模式忽略）
+jdk_tar_version: "11.0.2"
+jdk_tar_file: "jdk-{{ jdk_tar_version }}_linux-x64_bin.tar.gz"
+jdk_tar_url: "https://repo.huaweicloud.com/openjdk/{{ jdk_tar_version }}/{{ jdk_tar_file }}"
+jdk_tar_dir: "{{ apps_base_dir }}/jdk-{{ jdk_tar_version }}"
+
+# 包管理器模式下的包名映射
+jdk_packages:
+  RedHat:
+    "8": ["java-1.8.0-openjdk", "java-1.8.0-openjdk-devel"]
+    "11": ["java-11-openjdk", "java-11-openjdk-devel"]
+    "17": ["java-17-openjdk", "java-17-openjdk-devel"]
+  Debian:
+    "8": ["openjdk-8-jdk"]
+    "11": ["openjdk-11-jdk"]
+    "17": ["openjdk-17-jdk"]
+
+java_home: "{{ jdk_tar_dir if jdk_install_mode == 'tar' else (lookup('env', 'JAVA_HOME') or '/usr/lib/jvm/java-' ~ jdk_major ~ '-openjdk') }}"

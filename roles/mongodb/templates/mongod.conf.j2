@@ -1,0 +1,28 @@
+# Managed by Ansible (ansible-lab)
+systemLog:
+  destination: file
+  logAppend: true
+  path: {{ mongodb_base_dir }}/logs/mongod.log
+
+storage:
+  dbPath: {{ mongodb_data_dir }}
+  wiredTiger:
+    engineConfig:
+      cacheSizeGB: 2
+
+net:
+  port: {{ mongodb_port }}
+  bindIp: 0.0.0.0
+
+processManagement:
+  timeZoneInfo: /usr/share/zoneinfo
+
+{% if mongodb_replset_enabled | bool %}
+replication:
+  replSetName: {{ mongodb_replset_name }}
+{% endif %}
+{% if mongodb_keyfile_enabled | bool %}
+security:
+  keyFile: {{ mongodb_base_dir }}/keyfile
+  authorization: enabled
+{% endif %}

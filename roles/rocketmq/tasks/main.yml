@@ -1,0 +1,103 @@
+---
+- name: Create rocketmq user
+  ansible.builtin.user:
+    name: "{{ rocketmq_user }}"
+    shell: /sbin/nologin
+    create_home: false
+
+- name: Fetch rocketmq package
+  include_role:
+    name: fetch_package
+  vars:
+    fp_url: "{{ rocketmq_download_url }}"
+    fp_file: "{{ rocketmq_package_file }}"
+
+- name: Unarchive rocketmq
+  ansible.builtin.unarchive:
+    src: "{{ fp_dest }}"
+    dest: "{{ apps_base_dir }}"
+    remote_src: true
+    creates: "{{ apps_base_dir }}/rocketmq-{{ rocketmq_version }}"
+
+- name: Create symlink
+  ansible.builtin.file:
+    src: "{{ apps_base_dir }}/rocketmq-{{ rocketmq_version }}"
+    dest: "{{ rocketmq_base_dir }}"
+    state: link
+
+- name: Create store directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ rocketmq_user }}"
+    group: "{{ rocketmq_user }}"
+    mode: '0755'
+  loop:
+    - "{{ rocketmq_store_dir }}"
+    - "{{ rocketmq_store_dir }}/commitlog"
+    - "{{ rocketmq_store_dir }}/consumequeue"
+    - "{{ rocketmq_store_dir }}/index"
+    - "{{ rocketmq_base_dir }}/logs"
+
+- name: Compute namesrv address list
+  ansible.builtin.set_fact:
+    rocketmq_namesrv_addr: "{{ groups['rocketmq-nameserver'] | map('regex_replace', '^(.*)$', '\\1:' ~ rocketmq_namesrv_port) | join(';') }}"
+
+# 官方脚本默认内存过大，按变量调小
+- name: Tune default JVM heap in scripts
+  ansible.builtin.replace:
+    path: "{{ rocketmq_base_dir }}/bin/{{ item.file }}"
+    regexp: "{{ item.regexp }}"
+    replace: "{{ item.replace }}"
+  loop:
+    - { file: runserver.sh, regexp: '-Xms4g -Xmx4g -Xmn2g', replace: '-Xms{{ rocketmq_namesrv_heap }} -Xmx{{ rocketmq_namesrv_heap }} -Xmn256m' }
+    - { file: runbroker.sh, regexp: '-Xms8g -Xmx8g', replace: '-Xms{{ rocketmq_broker_heap }} -Xmx{{ rocketmq_broker_heap }}' }
+
+# ---------- NameServer ----------
+- name: Deploy nameserver
+  when: inventory_hostname in groups.get('rocketmq-nameserver', [])
+  block:
+    - name: Install nameserver systemd unit
+      ansible.builtin.template:
+        src: rocketmq-namesrv.service.j2
+        dest: /etc/systemd/system/rocketmq-namesrv.service
+        mode: '0644'
+
+    - name: Start nameserver
+      ansible.builtin.systemd:
+        name: rocketmq-namesrv
+        state: started
+        enabled: true
+        daemon_reload: true
+
+# ---------- Broker ----------
+- name: Deploy broker
+  when: inventory_hostname in groups.get('rocketmq-broker', [])
+  block:
+    - name: Install broker.conf
+      ansible.builtin.template:
+        src: broker.conf.j2
+        dest: "{{ rocketmq_base_dir }}/conf/broker.conf"
+        owner: "{{ rocketmq_user }}"
+        mode: '0644'
+      notify: restart rocketmq-broker
+
+    - name: Install broker systemd unit
+      ansible.builtin.template:
+        src: rocketmq-broker.service.j2
+        dest: /etc/systemd/system/rocketmq-broker.service
+        mode: '0644'
+
+    - name: Fix ownership
+      ansible.builtin.file:
+        path: "{{ apps_base_dir }}/rocketmq-{{ rocketmq_version }}"
+        owner: "{{ rocketmq_user }}"
+        group: "{{ rocketmq_user }}"
+        recurse: true
+
+    - name: Start broker
+      ansible.builtin.systemd:
+        name: rocketmq-broker
+        state: started
+        enabled: true
+        daemon_reload: true

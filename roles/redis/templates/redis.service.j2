@@ -1,0 +1,16 @@
+[Unit]
+Description=Redis Server
+After=network.target
+
+[Service]
+Type=simple
+User={{ redis_user }}
+Group={{ redis_user }}
+ExecStart={{ redis_base_dir }}/bin/redis-server {{ redis_base_dir }}/conf/redis.conf
+ExecStop={{ redis_base_dir }}/bin/redis-cli -p {{ redis_port }} -a {{ redis_requirepass }} shutdown
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

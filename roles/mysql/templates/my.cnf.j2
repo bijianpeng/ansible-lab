@@ -1,0 +1,37 @@
+[mysqld]
+# Managed by Ansible (ansible-lab)
+user                            = {{ mysql_user }}
+basedir                         = {{ mysql_base_dir }}
+datadir                         = {{ mysql_data_dir }}
+port                            = {{ mysql_port }}
+socket                          = /tmp/mysql.sock
+server_id                       = {{ ansible_default_ipv4.address.split('.')[3] }}
+
+# charset
+character_set_server            = utf8mb4
+collation_server                = utf8mb4_general_ci
+
+# connections
+max_connections                 = {{ mysql_max_connections }}
+max_connect_errors              = 1000
+
+# innodb
+innodb_buffer_pool_size         = {{ mysql_innodb_buffer_size }}
+innodb_log_file_size            = 512M
+innodb_flush_log_at_trx_commit  = 1
+innodb_flush_method             = O_DIRECT
+
+# binlog (GTID)
+log_bin                         = mysql-bin
+binlog_format                   = ROW
+gtid_mode                       = ON
+enforce_gtid_consistency        = ON
+log_replica_updates             = ON
+binlog_expire_logs_seconds      = 604800
+
+# slow log
+slow_query_log                  = 1
+long_query_time                 = 2
+
+[client]
+socket = /tmp/mysql.sock

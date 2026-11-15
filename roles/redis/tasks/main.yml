@@ -1,0 +1,105 @@
+---
+- name: Gather OS family
+  ansible.builtin.set_fact:
+    is_redhat: "{{ ansible_facts['os_family'] in ['RedHat', 'Kylin'] }}"
+
+- name: Install build tools (RedHat family)
+  ansible.builtin.package:
+    name: [gcc, gcc-c++, make]
+    state: present
+  when: is_redhat | bool
+
+- name: Install build tools (Debian family)
+  ansible.builtin.apt:
+    name: [build-essential]
+    state: present
+    update_cache: true
+  when: not is_redhat | bool
+
+- name: Create redis user
+  ansible.builtin.user:
+    name: "{{ redis_user }}"
+    shell: /sbin/nologin
+    create_home: false
+
+- name: Fetch redis source
+  include_role:
+    name: fetch_package
+  vars:
+    fp_url: "{{ redis_download_url }}"
+    fp_file: "{{ redis_package_file }}"
+
+- name: Unarchive redis source
+  ansible.builtin.unarchive:
+    src: "{{ fp_dest }}"
+    dest: "{{ remote_pkg_dir }}"
+    remote_src: true
+    creates: "{{ remote_pkg_dir }}/redis-{{ redis_version }}"
+
+- name: Compile and install redis
+  ansible.builtin.shell: >
+    make -j$(nproc) && make install PREFIX={{ redis_base_dir }}
+  args:
+    chdir: "{{ remote_pkg_dir }}/redis-{{ redis_version }}"
+    creates: "{{ redis_base_dir }}/bin/redis-server"
+
+- name: Create data directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_user }}"
+    mode: '0755'
+  loop:
+    - "{{ redis_data_dir }}"
+    - "{{ redis_base_dir }}/conf"
+    - "{{ redis_base_dir }}/logs"
+
+- name: Detect replication role
+  ansible.builtin.set_fact:
+    redis_is_replica: "{{ inventory_hostname in groups.get('redis-replica', []) }}"
+
+- name: Install redis.conf
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ redis_base_dir }}/conf/redis.conf"
+    mode: '0644'
+  notify: restart redis
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: redis.service.j2
+    dest: /etc/systemd/system/redis.service
+    mode: '0644'
+
+- name: Start redis
+  ansible.builtin.systemd:
+    name: redis
+    state: started
+    enabled: true
+    daemon_reload: true
+
+# ---------- 哨兵 ----------
+- name: Deploy sentinel
+  when: redis_sentinel | bool
+  block:
+    - name: Install sentinel.conf
+      ansible.builtin.template:
+        src: sentinel.conf.j2
+        dest: "{{ redis_base_dir }}/conf/sentinel.conf"
+        mode: '0644'
+        owner: "{{ redis_user }}"
+      notify: restart sentinel
+
+    - name: Install sentinel systemd unit
+      ansible.builtin.template:
+        src: redis-sentinel.service.j2
+        dest: /etc/systemd/system/redis-sentinel.service
+        mode: '0644'
+
+    - name: Start sentinel
+      ansible.builtin.systemd:
+        name: redis-sentinel
+        state: started
+        enabled: true
+        daemon_reload: true

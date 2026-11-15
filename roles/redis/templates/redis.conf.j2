@@ -1,0 +1,31 @@
+# Managed by Ansible (ansible-lab)
+bind 0.0.0.0
+protected-mode yes
+port {{ redis_port }}
+daemonize no
+supervised systemd
+
+dir {{ redis_data_dir }}
+logfile {{ redis_base_dir }}/logs/redis.log
+pidfile /var/run/redis_{{ redis_port }}.pid
+
+# memory
+maxmemory {{ redis_maxmemory }}
+maxmemory-policy {{ redis_maxmemory_policy }}
+
+# persistence
+appendonly yes
+appendfsync everysec
+save 900 1
+save 300 10
+
+# auth
+requirepass {{ redis_requirepass }}
+{% if redis_is_replica | bool %}
+masterauth {{ redis_requirepass }}
+replicaof {{ groups['redis-master'] | first }} {{ redis_port }}
+{% endif %}
+
+# replica settings
+replica-read-only yes
+repl-diskless-sync yes

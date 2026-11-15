@@ -1,0 +1,22 @@
+---
+# Nginx：RedHat 系走 nginx.org 官方 yum 源，Ubuntu 走官方 apt 源
+nginx_version: ""        # 留空装最新稳定版；可固定如 "1.24.0"
+
+# 反向代理/负载均衡配置（conf.d/app.conf）
+# 示例：
+# nginx_upstreams:
+#   - name: app
+#     servers: ["10.0.0.1:8080", "10.0.0.2:8080"]
+nginx_upstreams: []
+# nginx_servers:
+#   - listen: 80
+#     server_name: "_"
+#     locations:
+#       - path: /
+#         proxy_pass: http://app     # 指向 upstream 名
+nginx_servers: []
+
+nginx_worker_processes: "auto"
+nginx_worker_connections: 10240
+nginx_keepalive_timeout: 65
+nginx_client_max_body_size: "100m"

@@ -1,0 +1,44 @@
+---
+# 系统初始化变量
+common_disable_firewall: true
+common_disable_selinux: true
+common_disable_swap: false          # K8s 场景设为 true
+common_time_sync: true              # chrony
+common_chrony_servers:              # 按环境覆盖，内网改为自己的 NTP
+  - "ntp.aliyun.com"
+  - "ntp1.aliyun.com"
+
+common_sysctl:
+  vm.max_map_count: 262144          # ES / RocketMQ 需要
+  vm.swappiness: 10
+  fs.file-max: 655350
+  net.core.somaxconn: 32768
+  net.ipv4.tcp_max_tw_buckets: 5000
+
+common_limits:
+  - { domain: "*", type: soft, item: nofile, value: "655350" }
+  - { domain: "*", type: hard, item: nofile, value: "655350" }
+  - { domain: "*", type: soft, item: nproc, value: "65535" }
+  - { domain: "*", type: hard, item: nproc, value: "65535" }
+
+# 基础软件包
+common_packages_redhat:
+  - vim
+  - wget
+  - curl
+  - tar
+  - unzip
+  - lrzsz
+  - net-tools
+  - lsof
+  - chrony
+common_packages_debian:
+  - vim
+  - wget
+  - curl
+  - tar
+  - unzip
+  - lrzsz
+  - net-tools
+  - lsof
+  - chrony

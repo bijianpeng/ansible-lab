@@ -1,0 +1,111 @@
+---
+- name: Create mongod user
+  ansible.builtin.user:
+    name: "{{ mongodb_user }}"
+    shell: /sbin/nologin
+    create_home: false
+
+- name: Fetch mongodb package
+  include_role:
+    name: fetch_package
+  vars:
+    fp_url: "{{ mongodb_download_url }}"
+    fp_file: "{{ mongodb_package_file }}"
+
+- name: Unarchive mongodb
+  ansible.builtin.unarchive:
+    src: "{{ fp_dest }}"
+    dest: "{{ apps_base_dir }}"
+    remote_src: true
+    creates: "{{ apps_base_dir }}/mongodb-linux-{{ ansible_facts['architecture'] }}-{{ mongodb_os_map[ansible_facts['os_family'] if ansible_facts['os_family'] in mongodb_os_map else 'RedHat'] }}-{{ mongodb_version }}"
+
+- name: Create symlink
+  ansible.builtin.file:
+    src: "{{ apps_base_dir }}/mongodb-linux-{{ ansible_facts['architecture'] }}-{{ mongodb_os_map[ansible_facts['os_family'] if ansible_facts['os_family'] in mongodb_os_map else 'RedHat'] }}-{{ mongodb_version }}"
+    dest: "{{ mongodb_base_dir }}"
+    state: link
+
+- name: Link mongod binaries into PATH
+  ansible.builtin.file:
+    src: "{{ mongodb_base_dir }}/bin/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    state: link
+    force: true
+  loop: [mongod, mongos, mongodump, mongorestore, mongoimport, mongoexport]
+
+- name: Create data/log directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ mongodb_user }}"
+    group: "{{ mongodb_user }}"
+    mode: '0755'
+  loop:
+    - "{{ mongodb_data_dir }}"
+    - "{{ mongodb_base_dir }}/logs"
+
+- name: Install mongod.conf
+  ansible.builtin.template:
+    src: mongod.conf.j2
+    dest: "{{ mongodb_base_dir }}/mongod.conf"
+    owner: "{{ mongodb_user }}"
+    mode: '0644'
+  notify: restart mongod
+
+- name: Install keyfile (when enabled)
+  ansible.builtin.copy:
+    content: "{{ mongodb_keyfile_content }}"
+    dest: "{{ mongodb_base_dir }}/keyfile"
+    owner: "{{ mongodb_user }}"
+    group: "{{ mongodb_user }}"
+    mode: '0400'
+  when: mongodb_keyfile_enabled | bool
+  notify: restart mongod
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: mongod.service.j2
+    dest: /etc/systemd/system/mongod.service
+    mode: '0644'
+
+- name: Start mongod
+  ansible.builtin.systemd:
+    name: mongod
+    state: started
+    enabled: true
+    daemon_reload: true
+
+# ---------- 副本集初始化 ----------
+- name: Initiate replica set (first node only)
+  when: mongodb_replset_enabled | bool and inventory_hostname == groups['mongodb'] | first
+  block:
+    - name: Fetch mongosh package
+      include_role:
+        name: fetch_package
+      vars:
+        fp_url: "{{ mongosh_download_url }}"
+        fp_file: "{{ mongosh_package_file }}"
+
+    - name: Install mongosh
+      ansible.builtin.unarchive:
+        src: "{{ fp_dest }}"
+        dest: /tmp
+        remote_src: true
+
+    - name: Link mongosh
+      ansible.builtin.shell: |
+        d=$(ls -d /tmp/mongosh-* | head -1)
+        ln -sf $d/bin/mongosh /usr/local/bin/mongosh
+      changed_when: false
+
+    - name: rs.initiate
+      ansible.builtin.shell: >
+        mongosh --quiet --host {{ ansible_default_ipv4.address }} --port {{ mongodb_port }} --eval
+        'try { rs.status().ok } catch(e) {
+        rs.initiate({_id: "{{ mongodb_replset_name }}", members: [{% for h in groups['mongodb'] %}{_id: {{ loop.index0 }}, host: "{{ h }}:{{ mongodb_port }}" }{% if not loop.last %}, {% endif %}{% endfor %}]}) }'
+      register: rs_init
+      changed_when: rs_init.rc == 0
+      failed_when: false
+      retries: 5
+      delay: 3
+      until: rs_init.rc == 0

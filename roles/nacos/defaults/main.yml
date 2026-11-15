@@ -1,0 +1,20 @@
+---
+# Nacos（依赖 jdk role）
+nacos_version: "2.3.2"
+nacos_package_file: "nacos-server-{{ nacos_version }}.tar.gz"
+nacos_download_url: "https://repo.huaweicloud.com/nacos/{{ nacos_version }}/{{ nacos_package_file }}"
+
+nacos_user: "nacos"
+nacos_base_dir: "{{ apps_base_dir }}/nacos"
+nacos_port: 8848
+nacos_grpc_port: 9848
+
+# 集群模式（true 时生成 cluster.conf；生产推荐 ≥3 节点 + 外置 MySQL）
+nacos_cluster: true
+
+# 外置 MySQL 持久化（standalone 可用内嵌 derby）
+nacos_db_enabled: "{{ nacos_cluster }}"
+nacos_db_host: ""              # mysql 地址，如 192.168.1.10:3306
+nacos_db_name: "nacos_config"
+nacos_db_user: "nacos"
+nacos_db_password: "Nacos_123"

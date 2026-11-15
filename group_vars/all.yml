@@ -1,0 +1,20 @@
+---
+# 全局变量：下载缓存机制（折中方案）
+# 所有组件的安装包优先从本地缓存读取，缓存缺失时自动从 download_url 下载
+
+# 控制端本地缓存目录（相对仓库根目录，已被 .gitignore 忽略）
+local_cache_dir: "{{ playbook_dir }}/.pkg-cache"
+
+# 目标机临时包目录
+remote_pkg_dir: "/tmp/ansible-pkg"
+
+# 下载超时（秒）
+download_timeout: 600
+
+# 通用运行用户
+apps_user: "app"
+apps_group: "app"
+apps_base_dir: "/opt/apps"
+
+# 数据目录根
+data_base_dir: "/data"

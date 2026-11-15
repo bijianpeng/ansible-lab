@@ -1,0 +1,15 @@
+[Unit]
+Description=MySQL Server
+After=network.target
+
+[Service]
+Type=simple
+User={{ mysql_user }}
+Group={{ mysql_user }}
+ExecStart={{ mysql_base_dir }}/bin/mysqld --defaults-file=/etc/my.cnf
+LimitNOFILE=65535
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

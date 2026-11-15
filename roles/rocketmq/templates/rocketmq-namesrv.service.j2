@@ -1,0 +1,15 @@
+[Unit]
+Description=RocketMQ NameServer
+After=network.target
+
+[Service]
+Type=simple
+User={{ rocketmq_user }}
+Group={{ rocketmq_user }}
+Environment="JAVA_OPT_EXT=-Xms{{ rocketmq_namesrv_heap }} -Xmx{{ rocketmq_namesrv_heap }}"
+ExecStart=/bin/sh -c '{{ rocketmq_base_dir }}/bin/mqnamesrv'
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

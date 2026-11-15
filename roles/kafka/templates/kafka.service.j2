@@ -1,0 +1,18 @@
+[Unit]
+Description=Apache Kafka
+After=network.target
+
+[Service]
+Type=simple
+User={{ kafka_user }}
+Group={{ kafka_user }}
+Environment="KAFKA_HEAP_OPTS={{ kafka_heap_opts }}"
+Environment="LOG_DIR={{ kafka_base_dir }}/logs"
+ExecStart={{ kafka_base_dir }}/bin/kafka-server-start.sh {{ kafka_base_dir }}/config/server.properties
+ExecStop={{ kafka_base_dir }}/bin/kafka-server-stop.sh
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=100000
+
+[Install]
+WantedBy=multi-user.target

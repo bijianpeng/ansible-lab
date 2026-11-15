@@ -1,0 +1,59 @@
+---
+- name: Create kafka user
+  ansible.builtin.user:
+    name: "{{ kafka_user }}"
+    shell: /sbin/nologin
+    create_home: false
+
+- name: Fetch kafka package
+  include_role:
+    name: fetch_package
+  vars:
+    fp_url: "{{ kafka_download_url }}"
+    fp_file: "{{ kafka_package_file }}"
+
+- name: Unarchive kafka
+  ansible.builtin.unarchive:
+    src: "{{ fp_dest }}"
+    dest: "{{ apps_base_dir }}"
+    remote_src: true
+    creates: "{{ apps_base_dir }}/kafka_2.13-{{ kafka_version }}"
+
+- name: Create symlink
+  ansible.builtin.file:
+    src: "{{ apps_base_dir }}/kafka_2.13-{{ kafka_version }}"
+    dest: "{{ kafka_base_dir }}"
+    state: link
+
+- name: Create data directory
+  ansible.builtin.file:
+    path: "{{ kafka_data_dir }}"
+    state: directory
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_user }}"
+    mode: '0755'
+
+- name: Compute broker id
+  ansible.builtin.set_fact:
+    kafka_broker_id: "{{ groups['kafka'] | index(inventory_hostname) + 1 }}"
+
+- name: Install server.properties
+  ansible.builtin.template:
+    src: server.properties.j2
+    dest: "{{ kafka_base_dir }}/config/server.properties"
+    mode: '0644'
+    owner: "{{ kafka_user }}"
+  notify: restart kafka
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: kafka.service.j2
+    dest: /etc/systemd/system/kafka.service
+    mode: '0644'
+
+- name: Start kafka
+  ansible.builtin.systemd:
+    name: kafka
+    state: started
+    enabled: true
+    daemon_reload: true

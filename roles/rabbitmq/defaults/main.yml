@@ -1,0 +1,15 @@
+---
+# RabbitMQ：RedHat 系用官方 erlang+rabbitmq rpm 源（el8，麒麟V10/CentOS8 兼容）；Ubuntu 用系统源
+rabbitmq_cluster: true
+rabbitmq_cluster_name: "rmq-cluster"
+rabbitmq_erlang_cookie: "RABBITMQ_CLUSTER_COOKIE_CHANGEME"
+
+# 镜像队列策略（classic queue mirroring，RabbitMQ 3.x；4.x 已移除请勿启用）
+rabbitmq_ha_policy: false
+rabbitmq_vhosts: []
+rabbitmq_users: []
+# rabbitmq_users:
+#   - user: app
+#     password: "App_123"
+#     tags: management
+#     vhost: /

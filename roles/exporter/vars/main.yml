@@ -1,0 +1,58 @@
+---
+# 支持的 Prometheus 采集 agent 目录
+# 每项：version/file/url/port/flags（flags 支持 jinja，引用 groups 变量自动发现地址）
+exporter_catalog:
+  node:
+    version: "1.8.1"
+    repo: "prometheus/node_exporter"
+    bin: "node_exporter"
+    port: 9100
+    flags: ""
+  mysqld:
+    version: "0.15.1"
+    repo: "prometheus/mysqld_exporter"
+    bin: "mysqld_exporter"
+    port: 9104
+    flags: "--config.my-cnf=/etc/exporter/mysqld/my.cnf"
+  redis:
+    version: "1.58.0"
+    repo: "oliver006/redis_exporter"
+    bin: "redis_exporter"
+    port: 9121
+    flags: "--redis.addr localhost:6379 --redis.password {{ redis_requirepass | default('Redis_123') }}"
+  mongodb:
+    version: "0.40.0"
+    repo: "percona/mongodb_exporter"
+    bin: "mongodb_exporter"
+    port: 9216
+    flags: "--mongodb.uri mongodb://localhost:27017 --collect-all"
+  elasticsearch:
+    version: "1.7.0"
+    repo: "prometheus-community/elasticsearch_exporter"
+    bin: "elasticsearch_exporter"
+    port: 9114
+    flags: "--es.uri http://{{ groups['elasticsearch'] | first }}:9200"
+  kafka:
+    version: "1.7.0"
+    repo: "danielqsj/kafka_exporter"
+    bin: "kafka_exporter"
+    port: 9308
+    flags: "{% for h in groups.get('kafka', []) %}--kafka.server={{ h }}:9092 {% endfor %}"
+  nginx:
+    version: "1.1.0"
+    repo: "nginx/nginx-prometheus-exporter"
+    bin: "nginx-prometheus-exporter"
+    port: 9113
+    flags: "--nginx.scrape-uri http://localhost/stub_status"
+  blackbox:
+    version: "0.25.0"
+    repo: "prometheus/blackbox_exporter"
+    bin: "blackbox_exporter"
+    port: 9115
+    flags: ""
+
+# 下载源（github releases；内网可镜像后整体覆盖 base）
+exporter_download_base: "https://github.com"
+
+exporter_user: "exporter"
+exporter_install_dir: "{{ apps_base_dir }}/exporters"

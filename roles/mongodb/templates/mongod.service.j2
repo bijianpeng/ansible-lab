@@ -1,0 +1,19 @@
+[Unit]
+Description=MongoDB Database Server
+After=network.target
+
+[Service]
+Type=simple
+User={{ mongodb_user }}
+Group={{ mongodb_user }}
+ExecStart={{ mongodb_base_dir }}/bin/mongod --config {{ mongodb_base_dir }}/mongod.conf
+LimitFSIZE=infinity
+LimitCPU=infinity
+LimitAS=infinity
+LimitNOFILE=64000
+LimitNPROC=64000
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,7 @@
+# Managed by Ansible (ansible-lab)
+{{ common_chrony_servers | map('regex_replace', '^(.*)$', 'server \1 iburst') | join('\n') }}
+
+driftfile /var/lib/chrony/drift
+makestep 1.0 3
+rtcsync
+logdir /var/log/chrony

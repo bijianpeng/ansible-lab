@@ -1,0 +1,45 @@
+---
+- name: Gather OS family
+  ansible.builtin.set_fact:
+    jdk_os_family: "{{ ansible_facts['os_family'] }}"
+
+- name: Install JDK via package manager
+  when: jdk_install_mode == 'package'
+  block:
+    - name: Install JDK (RedHat family)
+      ansible.builtin.package:
+        name: "{{ jdk_packages['RedHat'][jdk_major | string] }}"
+        state: present
+      when: jdk_os_family in ['RedHat', 'Kylin']
+
+    - name: Install JDK (Debian family)
+      ansible.builtin.apt:
+        name: "{{ jdk_packages['Debian'][jdk_major | string] }}"
+        state: present
+        update_cache: true
+      when: jdk_os_family == 'Debian'
+
+- name: Install JDK via tar binary
+  when: jdk_install_mode == 'tar'
+  block:
+    - name: Fetch JDK package
+      include_role:
+        name: fetch_package
+      vars:
+        fp_url: "{{ jdk_tar_url }}"
+        fp_file: "{{ jdk_tar_file }}"
+
+    - name: Unarchive JDK
+      ansible.builtin.unarchive:
+        src: "{{ fp_dest }}"
+        dest: "{{ apps_base_dir }}"
+        remote_src: true
+        creates: "{{ jdk_tar_dir }}"
+
+- name: Set JAVA_HOME profile
+  ansible.builtin.copy:
+    dest: /etc/profile.d/java.sh
+    mode: '0644'
+    content: |
+      export JAVA_HOME={{ java_home }}
+      export PATH=$JAVA_HOME/bin:$PATH

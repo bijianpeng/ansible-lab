@@ -1,0 +1,15 @@
+[Unit]
+Description=RocketMQ Broker
+After=network.target rocketmq-namesrv.service
+
+[Service]
+Type=simple
+User={{ rocketmq_user }}
+Group={{ rocketmq_user }}
+ExecStart=/bin/sh -c '{{ rocketmq_base_dir }}/bin/mqbroker -c {{ rocketmq_base_dir }}/conf/broker.conf'
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

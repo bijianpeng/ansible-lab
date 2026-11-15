@@ -1,0 +1,9 @@
+---
+# RabbitMQ 集群（管理插件 15672）
+# 分组约定：rabbitmq（≥2台集群；单台也可，设 rabbitmq_cluster: false）
+- name: Deploy RabbitMQ
+  hosts: rabbitmq
+  gather_facts: true
+  roles:
+    - common
+    - rabbitmq

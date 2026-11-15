@@ -1,0 +1,6 @@
+# Managed by Ansible (ansible-lab)
+server.port: {{ kibana_server_port }}
+server.host: "0.0.0.0"
+elasticsearch.hosts: [{% for h in groups['elasticsearch'] %}http://{{ h }}:9200{% if not loop.last %}, {% endif %}{% endfor %}]
+i18n.locale: "zh-CN"
+logging.dest: {{ kibana_base_dir }}/logs/kibana.log

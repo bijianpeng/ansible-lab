@@ -1,0 +1,7 @@
+---
+# 系统初始化入口：所有目标机的基础环境
+- name: Common system init
+  hosts: all
+  gather_facts: true
+  roles:
+    - common

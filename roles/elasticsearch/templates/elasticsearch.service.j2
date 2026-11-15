@@ -1,0 +1,21 @@
+[Unit]
+Description=Elasticsearch
+After=network.target
+
+[Service]
+Type=simple
+User={{ elasticsearch_user }}
+Group={{ elasticsearch_user }}
+ExecStart={{ elasticsearch_base_dir }}/bin/elasticsearch
+Environment="ES_JAVA_OPTS=-Xms{{ elasticsearch_heap_size }} -Xmx{{ elasticsearch_heap_size }}"
+LimitNOFILE=65535
+LimitNPROC=4096
+{% if elasticsearch_memlock_enabled | bool %}
+LimitMEMLOCK=infinity
+{% endif %}
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
